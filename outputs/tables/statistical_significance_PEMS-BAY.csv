@@ -1,0 +1,6 @@
+Baseline_Model,Wilcoxon_Statistic,p_value,Significant_0_05,Interpretation
+LSTM,27139676.0,6.665133532980996e-14,True,Reject H0 (p = 6.67e-14). The proposed hybrid model's errors are statistically smaller than the baseline's errors (significant at alpha=0.05).
+GRU,28794416.0,1.0429836444000327e-39,True,Reject H0 (p = 1.04e-39). The proposed hybrid model's errors are statistically smaller than the baseline's errors (significant at alpha=0.05).
+BILSTM,25833048.0,0.002008097944781184,True,Reject H0 (p = 2.01e-03). The proposed hybrid model's errors are statistically smaller than the baseline's errors (significant at alpha=0.05).
+TRANSFORMER,26995572.0,2.533510944438544e-12,True,Reject H0 (p = 2.53e-12). The proposed hybrid model's errors are statistically smaller than the baseline's errors (significant at alpha=0.05).
+ARIMA,2249770.5,0.9998781085014343,False,Fail to reject H0 (p = 0.9999). There is no statistically significant difference between the prediction errors at alpha=0.05.

@@ -1,0 +1,16 @@
+Baseline_Model,Horizon,Wilcoxon_Statistic,p_value,Significant_0_05,Evaluated_Pairs,Interpretation
+LSTM,15m,27653146.0,2.1272492337513974e-20,True,10000,Reject H0 (p = 2.13e-20 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.
+LSTM,30m,27156758.0,4.260654668159815e-14,True,10000,Reject H0 (p = 4.26e-14 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.
+LSTM,60m,27980220.0,3.034494973857496e-25,True,10000,Reject H0 (p = 3.03e-25 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.
+GRU,15m,30054020.0,0.0,True,10000,Reject H0 (p = 0.00e+00 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.
+GRU,30m,29145588.0,0.0,True,10000,Reject H0 (p = 0.00e+00 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.
+GRU,60m,28728554.0,2.069432107050879e-38,True,10000,Reject H0 (p = 2.07e-38 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.
+BILSTM,15m,24644492.0,0.89252769947052,False,10000,Fail to reject H0 (p = 0.8925 >= 0.05). No statistically significant difference in paired prediction errors at alpha=0.05.
+BILSTM,30m,24354856.0,0.9875624179840088,False,10000,Fail to reject H0 (p = 0.9876 >= 0.05). No statistically significant difference in paired prediction errors at alpha=0.05.
+BILSTM,60m,24866980.0,0.6806151866912842,False,10000,Fail to reject H0 (p = 0.6806 >= 0.05). No statistically significant difference in paired prediction errors at alpha=0.05.
+TRANSFORMER,15m,28909980.0,4.86670956660009e-42,True,10000,Reject H0 (p = 4.87e-42 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.
+TRANSFORMER,30m,29620996.0,0.0,True,10000,Reject H0 (p = 0.00e+00 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.
+TRANSFORMER,60m,30578266.0,0.0,True,10000,Reject H0 (p = 0.00e+00 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.
+ARIMA,15m,27350.0,0.8163207769393921,False,340,Fail to reject H0 (p = 0.8163 >= 0.05). No statistically significant difference in paired prediction errors at alpha=0.05.
+ARIMA,30m,30122.0,0.26537299156188965,False,340,Fail to reject H0 (p = 0.2654 >= 0.05). No statistically significant difference in paired prediction errors at alpha=0.05.
+ARIMA,60m,41651.0,1.442581731153636e-12,True,340,Reject H0 (p = 1.44e-12 < 0.05). The paired error differences indicate that the Proposed Hybrid model achieves systematically smaller prediction errors than the baseline.

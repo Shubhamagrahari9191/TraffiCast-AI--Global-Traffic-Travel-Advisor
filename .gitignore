@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Large binaries & model weights
+*.h5
+*.npz
+*.pt
+*.pth
+*.zip
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IDEs & OS
+.vscode/
+.idea/
+.DS_Store
+
+# Datasets (large files)
+data/raw/**/*
+!data/raw/**/.gitkeep
+data/processed/**/*
+!data/processed/**/.gitkeep
+
+# Project outputs & predictions
+checkpoints/*
+!checkpoints/.gitkeep
+logs/*
+!logs/.gitkeep
+outputs/predictions/*
+!outputs/predictions/.gitkeep

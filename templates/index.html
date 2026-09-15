@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TraffiCast AI - Worldwide Traffic Forecast & Travel Decision Advisor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet Map JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-traffic-light logo-icon"></i>
+                <div>
+                    <h2>TraffiCast AI</h2>
+                    <span class="header-sub">Global Traffic & Travel Advisor</span>
+                </div>
+            </div>
+
+            <!-- View Switcher -->
+            <div class="view-switcher-container">
+                <button id="nav-btn-global" class="btn-view active">
+                    <i class="fa-solid fa-earth-americas"></i> Global Travel Advisor
+                </button>
+                <button id="nav-btn-research" class="btn-view">
+                    <i class="fa-solid fa-flask-vial"></i> Research Benchmark Hub
+                </button>
+            </div>
+
+            <!-- Global Advisor Sidebar Controls -->
+            <div id="sidebar-global-controls" class="sidebar-group active">
+                <div class="control-section">
+                    <h3><i class="fa-solid fa-location-dot"></i> Origin Location</h3>
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="global-origin-input" placeholder="Enter city, address or landmark..." value="New York, USA" autocomplete="off">
+                        <ul id="origin-suggestions" class="autocomplete-list"></ul>
+                    </div>
+                </div>
+
+                <div class="route-swap-row">
+                    <button id="btn-swap-locations" class="btn-icon" title="Swap Origin and Destination">
+                        <i class="fa-solid fa-arrow-down-up-across-line"></i> Swap
+                    </button>
+                    <span class="route-divider-line"></span>
+                </div>
+
+                <div class="control-section">
+                    <h3><i class="fa-solid fa-flag-checkered"></i> Destination Location</h3>
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="global-dest-input" placeholder="Enter destination..." value="JFK Airport, NY" autocomplete="off">
+                        <ul id="dest-suggestions" class="autocomplete-list"></ul>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3><i class="fa-solid fa-calendar-day"></i> Travel Day Type</h3>
+                    <div class="day-toggle">
+                        <button class="btn-day active" data-day="weekday">Weekday (Mon–Fri)</button>
+                        <button class="btn-day" data-day="weekend">Weekend (Sat–Sun)</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3><i class="fa-solid fa-bolt"></i> Popular Global Hubs</h3>
+                    <div class="popular-cities-scroll" id="popular-cities-container">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <button id="btn-calculate-route" class="btn-primary-action">
+                    <i class="fa-solid fa-route"></i> Forecast Traffic & Best Time
+                </button>
+            </div>
+
+            <!-- Research Dashboard Sidebar Controls -->
+            <div id="sidebar-research-controls" class="sidebar-group">
+                <div class="control-section">
+                    <h3><i class="fa-solid fa-map-location-dot"></i> Select Dataset</h3>
+                    <div class="dataset-buttons">
+                        <button class="btn-dataset active" data-dataset="METR-LA">
+                            <span class="city-name">Los Angeles</span>
+                            <span class="dataset-tag">METR-LA (207 Sensors)</span>
+                        </button>
+                        <button class="btn-dataset" data-dataset="PEMS-BAY">
+                            <span class="city-name">Bay Area</span>
+                            <span class="dataset-tag">PEMS-BAY (325 Sensors)</span>
+                        </button>
+                        <button class="btn-dataset" data-dataset="PEMS04">
+                            <span class="city-name">Bay Area (Volume)</span>
+                            <span class="dataset-tag">PEMS04 (307 Sensors)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3><i class="fa-solid fa-microchip"></i> Select Sensor</h3>
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="sensor-search" placeholder="Search sensor ID...">
+                    </div>
+                    <select id="sensor-select" size="5" class="custom-select"></select>
+                </div>
+
+                <div class="control-section">
+                    <h3><i class="fa-solid fa-clock"></i> Forecast Horizon</h3>
+                    <div class="horizon-toggle">
+                        <button class="btn-horizon active" data-horizon="0">15 Min</button>
+                        <button class="btn-horizon" data-horizon="1">30 Min</button>
+                        <button class="btn-horizon" data-horizon="2">60 Min</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>TraffiCast AI Engine</p>
+                <span class="badge">Hybrid Transformer-BiLSTM</span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Bar Header -->
+            <header class="top-bar">
+                <div class="title-area">
+                    <h1 id="page-main-title">Worldwide Traffic Forecasting & Travel Decision Advisor</h1>
+                    <p class="subtitle" id="page-main-subtitle">Search any location worldwide to analyze 24-hour congestion patterns and find the optimal time to travel.</p>
+                </div>
+                <div class="status-indicator">
+                    <span class="pulse-dot"></span>
+                    <span class="status-text" id="system-status-text">AI Traffic Engine Active</span>
+                </div>
+            </header>
+
+            <!-- ============================================== -->
+            <!-- VIEW 1: GLOBAL TRAVEL ADVISOR & ROUTE OPTIMIZER -->
+            <!-- ============================================== -->
+            <div id="view-global-advisor" class="view-panel active">
+                
+                <!-- Decision Recommendation Overview Cards -->
+                <section class="overview-grid">
+                    <div class="overview-card highlight-card hover-glow">
+                        <div class="card-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Recommended Best Departure Time</span>
+                            <h2 id="global-best-time">--:--</h2>
+                            <span class="card-subtext" id="global-time-saved">Save up to -- mins vs peak</span>
+                        </div>
+                    </div>
+
+                    <div class="overview-card hover-glow">
+                        <div class="card-icon" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Fastest vs. Peak Duration</span>
+                            <h2 id="global-duration-range">-- min / -- min</h2>
+                            <span class="card-subtext" id="global-distance-text">Distance: -- km</span>
+                        </div>
+                    </div>
+
+                    <div class="overview-card hover-glow">
+                        <div class="card-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Worst Peak Congestion Time</span>
+                            <h2 id="global-worst-time">--:--</h2>
+                            <span class="card-subtext" id="global-peak-window">Avoid Morning / Evening Rush</span>
+                        </div>
+                    </div>
+
+                    <div class="overview-card hover-glow">
+                        <div class="card-icon" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                            <i class="fa-solid fa-car-side"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Current Traffic Condition</span>
+                            <h2 id="global-current-status">Evaluating...</h2>
+                            <span class="card-subtext" id="global-current-duration">Duration right now: -- min</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Benchmark Alert Banner (Appears if LA / Bay Area) -->
+                <div id="benchmark-alert-banner" class="benchmark-banner hidden">
+                    <div class="banner-content">
+                        <i class="fa-solid fa-circle-nodes banner-icon"></i>
+                        <div>
+                            <strong>Benchmark Network Detected:</strong>
+                            <span id="benchmark-banner-text">This route passes through the METR-LA Deep Learning sensor grid.</span>
+                        </div>
+                    </div>
+                    <button id="btn-jump-benchmark" class="btn-banner-action">
+                        View Transformer-BiLSTM Sensor Data <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Global Map & Route Display -->
+                <div class="global-map-grid">
+                    <section class="dashboard-card map-card">
+                        <div class="card-header">
+                            <div class="header-left">
+                                <h2><i class="fa-solid fa-map"></i> Worldwide Interactive Route Map</h2>
+                                <span class="sub-label">Click anywhere on the map to set Origin or Destination pins</span>
+                            </div>
+                            <div class="header-right">
+                                <span class="badge" id="route-provider-badge">OSRM Global Network</span>
+                            </div>
+                        </div>
+                        <div class="map-container-wrapper">
+                            <div id="global-map" class="leaflet-map-container"></div>
+                            <div class="map-legend">
+                                <div class="legend-item"><span class="legend-dot green"></span> Smooth Flow</div>
+                                <div class="legend-item"><span class="legend-dot orange"></span> Moderate</div>
+                                <div class="legend-item"><span class="legend-dot red"></span> Heavy Congestion</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Smart Decision Advisor Panel -->
+                    <section class="dashboard-card advisor-card">
+                        <div class="card-header">
+                            <div>
+                                <h2><i class="fa-solid fa-compass"></i> Travel Decision Advisor</h2>
+                                <span class="sub-label" id="adv-local-time-label">Local Time: Evaluating...</span>
+                            </div>
+                        </div>
+                        <div class="advisor-content">
+                            <!-- Leave Now vs Later Comparison -->
+                            <div class="decision-chips-container">
+                                <div class="decision-chip active hover-glow">
+                                    <span class="chip-title">Leave Now</span>
+                                    <strong class="chip-val" id="chip-now-val">-- min</strong>
+                                    <span class="chip-status" id="chip-now-status">Live</span>
+                                </div>
+                                <div class="decision-chip hover-glow">
+                                    <span class="chip-title">In 30 Mins</span>
+                                    <strong class="chip-val" id="chip-30m-val">-- min</strong>
+                                    <span class="chip-diff" id="chip-30m-diff">--</span>
+                                </div>
+                                <div class="decision-chip hover-glow">
+                                    <span class="chip-title">In 1 Hour</span>
+                                    <strong class="chip-val" id="chip-1h-val">-- min</strong>
+                                    <span class="chip-diff" id="chip-1h-diff">--</span>
+                                </div>
+                                <div class="decision-chip hover-glow">
+                                    <span class="chip-title">In 2 Hours</span>
+                                    <strong class="chip-val" id="chip-2h-val">-- min</strong>
+                                    <span class="chip-diff" id="chip-2h-diff">--</span>
+                                </div>
+                            </div>
+
+                            <!-- Multi-Window Best Travel Times -->
+                            <div class="advisor-detail-box success-box">
+                                <h4><i class="fa-solid fa-clock text-success"></i> Best Departure by Window</h4>
+                                <ul class="best-list" id="adv-best-windows-list">
+                                    <li><i class="fa-solid fa-sun"></i> <strong>Morning Window:</strong> <span id="adv-best-morning">--:--</span></li>
+                                    <li><i class="fa-solid fa-sun-plant-wilt"></i> <strong>Midday Window:</strong> <span id="adv-best-midday">--:--</span></li>
+                                    <li><i class="fa-solid fa-moon"></i> <strong>Evening / Night:</strong> <span id="adv-best-evening">--:--</span></li>
+                                </ul>
+                            </div>
+
+                            <!-- Peak Hour Windows to Avoid -->
+                            <div class="advisor-detail-box">
+                                <h4><i class="fa-solid fa-ban text-danger"></i> Peak Bottlenecks to Avoid</h4>
+                                <ul class="peak-list">
+                                    <li><i class="fa-solid fa-circle-dot"></i> Morning Rush: <strong id="adv-morning-peak">--</strong></li>
+                                    <li><i class="fa-solid fa-circle-dot"></i> Evening Rush: <strong id="adv-evening-peak">--</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- 24-Hour Diurnal Congestion & Duration Curve -->
+                <section class="dashboard-card main-chart-card">
+                    <div class="card-header">
+                        <div class="header-left">
+                            <h2><i class="fa-solid fa-chart-line"></i> 24-Hour Travel Duration & Speed Forecast</h2>
+                            <span class="sub-label">Drag the slider below to test any planned departure time throughout the day</span>
+                        </div>
+                        <div class="header-right">
+                            <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">Diurnal Traffic Wave</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Departure Time Slider -->
+                    <div class="time-slider-wrapper">
+                        <div class="slider-header-row">
+                            <span class="slider-prompt"><i class="fa-solid fa-sliders"></i> Test Planned Departure Time:</span>
+                            <div class="slider-badge-stats">
+                                <span class="badge-time" id="slider-time-label">10:00</span>
+                                <span class="badge-dur" id="slider-duration-label">-- min</span>
+                                <span class="badge-status" id="slider-status-label">--</span>
+                            </div>
+                        </div>
+                        <input type="range" id="time-slot-slider" min="0" max="47" value="20" class="time-range-slider" step="1">
+                        <div class="slider-ticks">
+                            <span>00:00</span>
+                            <span>06:00 (Morning)</span>
+                            <span>12:00 (Noon)</span>
+                            <span>18:00 (Evening)</span>
+                            <span>23:30</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="global-traffic-chart"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- VIEW 2: SPATIOTEMPORAL RESEARCH BENCHMARKS     -->
+            <!-- ============================================== -->
+            <div id="view-research-hub" class="view-panel">
+                <!-- Metrics Overview Cards -->
+                <section class="overview-grid">
+                    <div class="overview-card hover-glow">
+                        <div class="card-icon" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9;">
+                            <i class="fa-solid fa-gauge-high"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Active Horizon</span>
+                            <h2 id="summary-horizon">15 Minutes Ahead</h2>
+                        </div>
+                    </div>
+                    <div class="overview-card hover-glow">
+                        <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Hybrid MAE Improvement</span>
+                            <h2 id="summary-improvement">-4.8% vs. LSTM</h2>
+                        </div>
+                    </div>
+                    <div class="overview-card hover-glow">
+                        <div class="card-icon" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Wilcoxon Significance (<span id="wilcoxon-horizon-label">15m</span>)</span>
+                            <h2 id="summary-pvalue">p < 0.001 (Significant)</h2>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Main Timeline Graph -->
+                <section class="dashboard-card main-chart-card">
+                    <div class="card-header">
+                        <div class="header-left">
+                            <h2><i class="fa-solid fa-chart-area"></i> Spatiotemporal Traffic Velocity Predictions</h2>
+                            <span class="sub-label">Actual vs. Forecast Timelines (288 steps / approx. 24h evaluation window; single-pass predictions target 15/30/60 min horizons)</span>
+                        </div>
+                        <div class="header-right">
+                            <span class="sensor-badge" id="active-sensor-badge">Sensor: --</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="traffic-chart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Tables Grid: Performance Comparisons and Significance -->
+                <div class="layout-grid-2">
+                    <!-- Evaluation Metrics -->
+                    <section class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-table-list"></i> Baseline Model Comparison</h2>
+                            <span class="sub-label">Multi-horizon accuracy metrics across all test intervals</span>
+                        </div>
+                        <div class="table-container">
+                            <table id="metrics-table" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Model</th>
+                                        <th>Horizon</th>
+                                        <th>MAE (mph)</th>
+                                        <th>RMSE</th>
+                                        <th>MAPE (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Wilcoxon & Significance Testing -->
+                    <section class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-scale-balanced"></i> Wilcoxon Significance Tests</h2>
+                            <span class="sub-label">Paired error comparison for <span id="sig-table-horizon-label" style="color: #60a5fa; font-weight: 600;">15m</span> horizon (alpha = 0.05)</span>
+                        </div>
+                        <div class="table-container">
+                            <table id="significance-table" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Hypothesis Pair</th>
+                                        <th>Statistic</th>
+                                        <th>p-value</th>
+                                        <th>Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Explainable AI (SHAP) Visualizations -->
+                <section class="dashboard-card shap-card">
+                    <div class="card-header">
+                        <div class="header-left">
+                            <h2><i class="fa-solid fa-brain"></i> Representative SHAP Explainability</h2>
+                            <span class="sub-label" id="shap-disclaimer-label">Kernel SHAP attribution evaluated on a representative sensor at the 15-minute horizon</span>
+                        </div>
+                        <div class="header-right">
+                            <span class="badge" style="background: rgba(220, 38, 38, 0.15); color: #dc2626;">Representative Subset</span>
+                        </div>
+                    </div>
+                    
+                    <div class="shap-container">
+                        <div class="shap-text-intro">
+                            <p>
+                                Due to the computational complexity of Kernel SHAP over continuous spatiotemporal inputs, 
+                                explanations are generated on a representative test subset (<span id="shap-representative-sensor-text" style="color: #60a5fa; font-weight: 600;">Representative Sensor: Sensor 773869</span>, Horizon: 15m). 
+                                Temporal dynamics are governed by <strong>Temporal Self-Attention</strong> and <strong>BiLSTM</strong>, 
+                                while spatial relationships are learned implicitly through joint multivariate sensor representations.
+                            </p>
+                        </div>
+
+                        <div class="shap-plots-grid">
+                            <div class="shap-plot-box hover-glow">
+                                <h4>Representative Temporal Feature Importance</h4>
+                                <p class="plot-desc">Averages SHAP values across spatial inputs to reveal temporal lag influence decay.</p>
+                                <div class="img-wrapper">
+                                    <img id="shap-img-temporal" src="" alt="Global SHAP Plot">
+                                </div>
+                            </div>
+
+                            <div class="shap-plot-box hover-glow">
+                                <h4>Representative Local Attribution (Sample 0)</h4>
+                                <p class="plot-desc">Details how specific historical lags push the prediction up/down from the baseline.</p>
+                                <div class="img-wrapper">
+                                    <img id="shap-img-local" src="" alt="Local SHAP Plot">
+                                </div>
+                            </div>
+
+                            <div class="shap-plot-box hover-glow wide-plot">
+                                <h4>Representative Spatiotemporal Feature Summary</h4>
+                                <p class="plot-desc">Combined summary of the top 15 features across time lags and sensor dimensions.</p>
+                                <div class="img-wrapper">
+                                    <img id="shap-img-summary" src="" alt="SHAP Summary Plot">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Ablation Studies Section -->
+                <section class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-screwdriver-wrench"></i> Architecture Ablation Study</h2>
+                        <span class="sub-label">Evaluating the structural contributions of Transformer, BiLSTM, and hyperparameters</span>
+                    </div>
+                    <div class="table-container">
+                        <table id="ablation-table" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Experiment Variant</th>
+                                    <th>Overall MAE (mph)</th>
+                                    <th>Overall RMSE</th>
+                                    <th>Overall MAPE (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

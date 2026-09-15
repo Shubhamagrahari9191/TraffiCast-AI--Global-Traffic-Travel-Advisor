@@ -1,0 +1,8 @@
+{
+  "representative_sensor": "Sensor 773869",
+  "horizon_minutes": 15,
+  "background_samples": 100,
+  "evaluated_test_subset_size": 10,
+  "nsamples_perturbations": 100,
+  "methodology": "Representative test subset with bounded background dataset (Kernel SHAP)"
+}

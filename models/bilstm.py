@@ -1,0 +1,54 @@
+import torch
+import torch.nn as nn
+
+class BiLSTMModel(nn.Module):
+    """
+    Standard PyTorch BiLSTM model for multi-horizon traffic flow forecasting.
+    Processes input of shape (batch_size, input_window, num_sensors)
+    and predicts output of shape (batch_size, num_horizons, num_sensors)
+    """
+    def __init__(self, num_sensors: int, num_horizons: int = 3, 
+                 hidden_size: int = 64, num_layers: int = 1, dropout: float = 0.2):
+        super(BiLSTMModel, self).__init__()
+        
+        self.num_sensors = num_sensors
+        self.num_horizons = num_horizons
+        
+        # Bidirectional LSTM Layer
+        self.bilstm = nn.LSTM(
+            input_size=num_sensors,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            bidirectional=True,
+            dropout=dropout if num_layers > 1 else 0.0
+        )
+        
+        self.dropout = nn.Dropout(p=dropout)
+        
+        # Doubled hidden size due to bidirectionality
+        self.fc = nn.Linear(hidden_size * 2, num_horizons * num_sensors)
+
+    def forward(self, x):
+        """
+        Args:
+            x (torch.Tensor): Input of shape (batch_size, input_window, num_sensors)
+            
+        Returns:
+            torch.Tensor: Output predictions of shape (batch_size, num_horizons, num_sensors)
+        """
+        # x: [B, T_in, N]
+        # bilstm_out: [B, T_in, 2 * H]
+        bilstm_out, _ = self.bilstm(x)
+        
+        # Last representation of the combined sequence: [B, 2 * H]
+        last_hidden = bilstm_out[:, -1, :]
+        
+        # Apply dropout and FC projection
+        out = self.dropout(last_hidden)
+        out = self.fc(out)  # [B, num_horizons * num_sensors]
+        
+        # Reshape to [B, num_horizons, num_sensors]
+        out = out.view(-1, self.num_horizons, self.num_sensors)
+        
+        return out

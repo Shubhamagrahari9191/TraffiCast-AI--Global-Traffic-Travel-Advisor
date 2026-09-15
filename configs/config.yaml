@@ -1,0 +1,52 @@
+dataset:
+  name: METR-LA  # Options: METR-LA, PEMS-BAY, PEMS04
+  raw_dir: data/raw
+  processed_dir: data/processed
+
+sequence:
+  input_window: 12  # 60 minutes (12 steps of 5 mins)
+  horizons:
+    - 15
+    - 30
+    - 60
+  time_steps_per_hour: 12
+
+training:
+  batch_size: 64
+  epochs: 50
+  learning_rate: 0.001
+  patience: 10
+  weight_decay: 0.0001
+  grad_clip: 5.0
+
+model:
+  d_model: 64
+  num_heads: 4
+  transformer_layers: 2
+  dim_feedforward: 128
+  bilstm_hidden: 64
+  bilstm_layers: 1
+  lstm_hidden: 64
+  lstm_layers: 1
+  gru_hidden: 64
+  gru_layers: 1
+  dropout: 0.2
+
+arima:
+  selected_sensors: [0, 1, 2, 3, 4]  # Indices of sensors to run ARIMA on by default (for speed)
+  full_experiment: false              # If true, runs ARIMA on all sensors (very slow)
+  step_size: 50                       # Temporal sampling step size to evaluate ARIMA predictions
+
+shap:
+  num_background_samples: 100         # Bounded background size for KernelExplainer
+  num_test_samples: 10                # Bounded test subset for evaluation
+  nsamples: 100                       # Number of perturbations evaluated per test instance
+  seed: 42
+
+experiment:
+  seed: 42
+  device: auto  # auto, cpu, cuda, mps
+  train_ratio: 0.7
+  val_ratio: 0.1
+  test_ratio: 0.2
+
