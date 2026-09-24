@@ -683,7 +683,15 @@ function initResearchDashboard() {
 async function loadResearchConfig() {
     try {
         const res = await fetch(`/api/config?dataset=${state.research.dataset}`);
+        if (!res.ok) {
+            console.error(`Failed to load config: HTTP ${res.status}`);
+            return;
+        }
         const config = await res.json();
+        if (config.error || !config.sensors || !Array.isArray(config.sensors)) {
+            console.error("Config load error:", config.error);
+            return;
+        }
         
         state.research.sensors = config.sensors;
         populateSensorsList(config.sensors);

@@ -26,10 +26,12 @@ def get_dataset_metadata(dataset_name):
     config = load_config()
     raw_dir = config['dataset']['raw_dir']
     from preprocessing.load_data import resolve_dataset_path
+    
+    # 1. Try loading from raw dataset folder if available (local development)
     try:
         file_path = resolve_dataset_path(raw_dir, dataset_name)
         df, timestamps = load_raw_data(file_path)
-        sensor_ids = list(df.columns)
+        sensor_ids = [str(c) for c in df.columns]
         
         if timestamps is None:
             # Fallback to dummy 5-minute interval timestamps
@@ -52,6 +54,41 @@ def get_dataset_metadata(dataset_name):
         DATA_CACHE[dataset_name] = metadata
         return metadata
     except Exception as e:
+        # 2. Seamless standalone fallback (cloud deployment)
+        demo_npz_path = f"data/demo_benchmark/{dataset_name}_benchmark.npz"
+        meta_json_path = "data/demo_benchmark/sensors_meta.json"
+        
+        if os.path.exists(demo_npz_path):
+            try:
+                data = np.load(demo_npz_path, allow_pickle=True)
+                sensor_ids = [str(s) for s in data['sensor_ids']]
+                timestamps = data['timestamps'][0].tolist()
+                metadata = {
+                    'sensor_ids': sensor_ids,
+                    'timestamps': timestamps,
+                    'test_start_idx': 0
+                }
+                DATA_CACHE[dataset_name] = metadata
+                return metadata
+            except Exception as npz_err:
+                print(f"Error loading demo npz for {dataset_name}: {npz_err}")
+                
+        if os.path.exists(meta_json_path):
+            try:
+                import json
+                with open(meta_json_path, 'r') as f:
+                    all_meta = json.load(f)
+                if dataset_name in all_meta:
+                    metadata = {
+                        'sensor_ids': all_meta[dataset_name]['sensor_ids'],
+                        'timestamps': all_meta[dataset_name]['sample_timestamps'],
+                        'test_start_idx': 0
+                    }
+                    DATA_CACHE[dataset_name] = metadata
+                    return metadata
+            except Exception as j_err:
+                print(f"Error loading sensors_meta.json: {j_err}")
+                
         print(f"Error loading metadata for {dataset_name}: {e}")
         return None
 
@@ -89,67 +126,83 @@ def get_predictions():
     # Mapping horizon index to step offset (15m = 3 steps, 30m = 6 steps, 60m = 12 steps)
     horizon_steps = [3, 6, 12]
     h_step = horizon_steps[horizon_idx]
-    
-    # Load targets (actual values)
-    targets_path = f"outputs/predictions/hybrid_{dataset}_targets.npy"
-    if not os.path.exists(targets_path):
-        return jsonify({'error': f'Predictions for {dataset} not found. Please train models first.'}), 404
-        
-    targets = np.load(targets_path)  # shape: (num_samples, 3, num_sensors)
-    num_samples = targets.shape[0]
-    
-    actual_vals = targets[:, horizon_idx, sensor_idx].tolist()
-    
-    # Slice the corresponding test timestamps
-    input_window = 12
-    test_start = meta['test_start_idx']
-    
-    timestamps_slice = []
-    for i in range(num_samples):
-        t_idx = test_start + i + input_window + h_step - 1
-        if t_idx < len(meta['timestamps']):
-            timestamps_slice.append(meta['timestamps'][t_idx])
-        else:
-            timestamps_slice.append(f"Step {i}")
-            
-    # Load predictions for all baselines and hybrid
     models = ['hybrid', 'lstm', 'gru', 'bilstm', 'transformer', 'arima']
-    model_preds = {}
-    config = load_config()
     
-    for model in models:
-        preds_path = f"outputs/predictions/{model}_{dataset}_preds.npy"
-        if os.path.exists(preds_path):
-            preds = np.load(preds_path)
-            
-            if model == 'arima':
-                # ARIMA runs with a step size sampling (default: 50)
-                step_size = 50 if not config['arima']['full_experiment'] else 200
-                aligned_arima = [None] * num_samples
-                
-                # Check if this sensor index was actually evaluated in ARIMA config
-                arima_sensors = config['arima']['selected_sensors']
-                if config['arima']['full_experiment']:
-                    arima_sensors = list(range(len(sensor_ids)))
-                    
-                if sensor_idx in arima_sensors:
-                    arima_s_idx = arima_sensors.index(sensor_idx)
-                    for idx_out, i in enumerate(range(0, num_samples, step_size)):
-                        if idx_out < preds.shape[0]:
-                            aligned_arima[i] = float(preds[idx_out, horizon_idx, arima_s_idx])
-                model_preds['arima'] = aligned_arima
+    # 1. Full training mode: check if full outputs exist on disk
+    targets_path = f"outputs/predictions/hybrid_{dataset}_targets.npy"
+    if os.path.exists(targets_path):
+        targets = np.load(targets_path)  # shape: (num_samples, 3, num_sensors)
+        num_samples = targets.shape[0]
+        actual_vals = targets[:, horizon_idx, sensor_idx].tolist()
+        
+        input_window = 12
+        test_start = meta.get('test_start_idx', 0)
+        timestamps_slice = []
+        for i in range(num_samples):
+            t_idx = test_start + i + input_window + h_step - 1
+            if t_idx < len(meta['timestamps']):
+                timestamps_slice.append(meta['timestamps'][t_idx])
             else:
-                model_preds[model] = preds[:, horizon_idx, sensor_idx].tolist()
-        else:
-            model_preds[model] = [None] * num_samples
-            
-    return jsonify({
-        'sensor_id': sensor_ids[sensor_idx],
-        'sensor_idx': sensor_idx,
-        'timestamps': timestamps_slice,
-        'actual': actual_vals,
-        'predictions': model_preds
-    })
+                timestamps_slice.append(f"Step {i}")
+                
+        model_preds = {}
+        config = load_config()
+        for model in models:
+            preds_path = f"outputs/predictions/{model}_{dataset}_preds.npy"
+            if os.path.exists(preds_path):
+                preds = np.load(preds_path)
+                if model == 'arima':
+                    step_size = 50 if not config['arima']['full_experiment'] else 200
+                    aligned_arima = [None] * num_samples
+                    arima_sensors = config['arima']['selected_sensors']
+                    if config['arima']['full_experiment']:
+                        arima_sensors = list(range(len(sensor_ids)))
+                    if sensor_idx in arima_sensors:
+                        arima_s_idx = arima_sensors.index(sensor_idx)
+                        for idx_out, i in enumerate(range(0, num_samples, step_size)):
+                            if idx_out < preds.shape[0]:
+                                aligned_arima[i] = float(preds[idx_out, horizon_idx, arima_s_idx])
+                    model_preds['arima'] = aligned_arima
+                else:
+                    model_preds[model] = preds[:, horizon_idx, sensor_idx].tolist()
+            else:
+                model_preds[model] = [None] * num_samples
+                
+        return jsonify({
+            'sensor_id': sensor_ids[sensor_idx],
+            'sensor_idx': sensor_idx,
+            'timestamps': timestamps_slice,
+            'actual': actual_vals,
+            'predictions': model_preds
+        })
+        
+    # 2. Standalone cloud fallback (data/demo_benchmark/)
+    demo_npz_path = f"data/demo_benchmark/{dataset}_benchmark.npz"
+    if os.path.exists(demo_npz_path):
+        data = np.load(demo_npz_path, allow_pickle=True)
+        timestamps_slice = data['timestamps'][horizon_idx].tolist()
+        targets = data['targets']  # shape: (288, 3, num_sensors)
+        actual_vals = targets[:, horizon_idx, sensor_idx].tolist()
+        
+        model_preds = {}
+        for m in models:
+            key = f"pred_{m}"
+            if key in data:
+                arr = data[key][:, horizon_idx, sensor_idx]
+                arr_list = [None if np.isnan(v) else float(v) for v in arr]
+                model_preds[m] = arr_list
+            else:
+                model_preds[m] = [None] * len(actual_vals)
+                
+        return jsonify({
+            'sensor_id': sensor_ids[sensor_idx],
+            'sensor_idx': sensor_idx,
+            'timestamps': timestamps_slice,
+            'actual': actual_vals,
+            'predictions': model_preds
+        })
+        
+    return jsonify({'error': f'Predictions for {dataset} not found.'}), 404
 
 @app.route('/api/metrics')
 def get_metrics():

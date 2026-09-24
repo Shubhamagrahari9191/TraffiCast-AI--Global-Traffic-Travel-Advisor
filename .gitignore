@@ -18,6 +18,9 @@ dist/
 *.pth
 *.zip
 
+# Allow standalone benchmark package for web deployment
+!data/demo_benchmark/**
+
 # Jupyter Notebooks
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
