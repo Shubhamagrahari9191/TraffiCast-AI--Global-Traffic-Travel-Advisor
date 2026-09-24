@@ -235,5 +235,8 @@ def serve_figure(filename):
     return send_from_directory('outputs/figures', filename)
 
 if __name__ == '__main__':
-    # Running local development server on port 5000
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    # Cloud-ready & local execution with dynamic port binding
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() in ['true', '1']
+    print(f"🚀 TraffiCast AI Server starting on port {port} (debug={debug_mode})...")
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
